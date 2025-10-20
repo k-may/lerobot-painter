@@ -1,0 +1,33 @@
+#blender
+*.pyc
+# *.blend[1-9]
+__pycache__
+/dist/
+
+# OS X
+.DS_Store
+.Spotlight-V100
+.Trashes
+._*
+
+
+# Distribution / packaging
+.Python
+develop-eggs/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+
+# pyenv
+.python-version
+
+# Environments
+.env
+.venv
+venv/
+env.bak/
+venv.bak/
