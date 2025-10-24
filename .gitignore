@@ -33,3 +33,4 @@ env.bak/
 venv.bak/
 
 .idea/
+/Miniforge3-Darwin-arm64.sh
