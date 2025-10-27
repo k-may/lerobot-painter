@@ -1,6 +1,9 @@
+import time
+from sys import platform
+
 import numpy as np
 from pynput import keyboard
-
+from scipy.spatial.transform import Rotation as R
 
 def fit_plane_svd(poses):
     points = np.array([[p["ee.x"], p["ee.y"], p["ee.z"]] for p in poses])
@@ -38,3 +41,70 @@ def init_keyboard():
     listener.start()
 
     return listener, events
+
+def busy_wait(seconds):
+    if platform.system() == "Darwin" or platform.system() == "Windows":
+        # On Mac and Windows, `time.sleep` is not accurate and we need to use this while loop trick,
+        # but it consumes CPU cycles.
+        end_time = time.perf_counter() + seconds
+        while time.perf_counter() < end_time:
+            pass
+    else:
+        # On Linux time.sleep is accurate
+        if seconds > 0:
+            time.sleep(seconds)
+
+def compose_ee_pose(pos_w, tilt_angle_deg, plane_u, plane_v, plane_normal, gripper_pos=8.5):
+    """
+    Compose a robot EE pose from a position on the drawing plane and a tilt angle.
+
+    Parameters
+    ----------
+    pos_w : array-like, shape (3,)
+        Position of end-effector in world coordinates.
+    tilt_angle_deg : float
+        Tilt angle of pencil relative to plane normal (degrees).
+    plane_u, plane_v, plane_normal : np.ndarray, shape (3,)
+        Orthonormal basis vectors of the plane.
+    gripper_pos : float
+        Optional gripper position value.
+
+    Returns
+    -------
+    dict
+        Dictionary with ee.{x,y,z,wx,wy,wz,gripper_pos}
+    """
+    # Normalize plane axes
+    u = plane_u / np.linalg.norm(plane_u)
+    v = plane_v / np.linalg.norm(plane_v)
+    n = plane_normal / np.linalg.norm(plane_normal)
+
+    # Step 1 — Apply tilt around plane_u
+    tilt_axis = u  # could choose v or any axis in plane
+    tilt_rad = np.radians(tilt_angle_deg)
+    R_tilt = R.from_rotvec(tilt_rad * tilt_axis)
+
+    # Step 2 — Build base orientation (pencil along -normal)
+    z_axis = -n
+    x_axis = u
+    y_axis = np.cross(z_axis, x_axis)
+    y_axis /= np.linalg.norm(y_axis)
+    x_axis = np.cross(y_axis, z_axis)
+    x_axis /= np.linalg.norm(x_axis)
+    R_base = np.column_stack([x_axis, y_axis, z_axis])
+
+    # Step 3 — Apply tilt
+    R_final = R_tilt.as_matrix() @ R_base
+
+    # Step 4 — Convert to Euler angles (XYZ convention)
+    euler = R.from_matrix(R_final).as_euler('xyz', degrees=False)
+
+    return {
+        "ee.x": float(pos_w[0]),
+        "ee.y": float(pos_w[1]),
+        "ee.z": float(pos_w[2]),
+        "ee.wx": float(euler[0]),
+        "ee.wy": float(euler[1]),
+        "ee.wz": float(euler[2]),
+        "ee.gripper_pos": float(gripper_pos)
+    }
