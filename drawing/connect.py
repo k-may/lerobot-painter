@@ -28,6 +28,8 @@ def connect_to_robots(leader_port, leader_id, follower_port, follower_id, force_
         try:
             yield robot, teleop
         finally:
+            print("Disconnecting")
+
             try:
                 if robot.is_connected:
                     robot.disconnect()
