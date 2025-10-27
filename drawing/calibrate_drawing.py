@@ -26,7 +26,7 @@ with connect_to_robots(leader_port, leader_id, follower_port, follower_id) as (r
 # robot, teleop = connect_to_robots(leader_port, leader_id, follower_port, follower_id)
 
     kinematics_solver = RobotKinematics(
-        urdf_path="./simulation/SO101/so101_new_calib.urdf",
+        urdf_path="../simulation/SO101/so101_new_calib.urdf",
         target_frame_name="gripper_frame_link",
         joint_names=list(robot.bus.motors.keys()),
     )

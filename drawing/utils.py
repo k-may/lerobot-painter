@@ -2,8 +2,7 @@ import numpy as np
 from pynput import keyboard
 
 
-def fit_plane_svd(poses):
-    points = np.array([[p["ee.x"], p["ee.y"], p["ee.z"]] for p in poses])
+def fit_plane_svd(points):
     # points: (N,3) numpy array in robot/world frame
     centroid = points.mean(axis=0)
     Q = points - centroid
