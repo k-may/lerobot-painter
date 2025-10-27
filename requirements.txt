@@ -1,0 +1,4 @@
+numpy~=2.2.6
+pynput~=1.8.1
+lerobot~=0.4.0
+scipy~=1.16.2
