@@ -1,5 +1,5 @@
 import json
-from datetime import time
+import time
 
 import numpy as np
 from lerobot.model.kinematics import RobotKinematics
@@ -15,14 +15,15 @@ FPS = 30
 with open('./drawing_config.json', 'r') as f:
     config = json.load(f)
 
-T, u, v, normal, origin = config["T"], config["u"], config["v"], config["normal"], config["origin"]
+T, u, v, normal, origin = np.array(config["T"]), np.array(config["u"]), np.array(config["v"]), np.array(config["normal"]), np.array(config["origin"])
+
 
 # create 2D circle path in meters, center (0,0) radius 0.05
 angles = np.linspace(0, 2 * np.pi, 300)
 circle2d = [(0.05 * np.cos(a), 0.05 * np.sin(a)) for a in angles]
 
 # convert to world poses and execute
-hover_h = 0.02  # 2 cm above plane
+hover_h = 0.04  # 2 cm above plane
 contact_z = 0.0  # exactly on plane, or small negative for slight pressure
 
 with connect_to_robots(config["teleop_port"], config["teleop_id"],
@@ -57,12 +58,12 @@ with connect_to_robots(config["teleop_port"], config["teleop_id"],
         t0 = time.perf_counter()
 
         s,t = circle2d[i]
-        pos_w = origin + s * u + t * v
+        pos_w = origin + s * u + t * v + hover_h * -normal
 
         # Get robot observation
         robot_obs = robot.get_observation()
 
-        action = compose_ee_pose(pos_w, 145, u, v, normal, gripper_pos=8.5)
+        action = compose_ee_pose(pos_w, 150, u, v, normal, gripper_pos=8.5)
 
         # combine teleop EE action with robot observation for IK
         robot_obs = robot.get_observation()
@@ -71,9 +72,13 @@ with connect_to_robots(config["teleop_port"], config["teleop_id"],
         follower_joints_act = ee_to_follower_joints(combined_input)
         robot.send_action(follower_joints_act)
 
+
         busy_wait(max(1.0 / FPS - (time.perf_counter() - t0), 0.0))
 
-        if i < len(circle2d):
+        if i < len(circle2d) - 1:
             i += 1
         else:
+            home_pose = config["home_pose"]
+            robot.send_action(home_pose)
+            busy_wait(max(1.0 / FPS - (time.perf_counter() - t0), 0.0))
             break

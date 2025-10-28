@@ -1,9 +1,10 @@
 import time
-from sys import platform
+import platform
 
 import numpy as np
 from pynput import keyboard
 from scipy.spatial.transform import Rotation as R
+
 
 def fit_plane_svd(points):
     # points: (N,3) numpy array in robot/world frame
@@ -11,7 +12,7 @@ def fit_plane_svd(points):
     Q = points - centroid
     # SVD
     _, _, vh = np.linalg.svd(Q, full_matrices=False)
-    normal = vh[-1, :]           # smallest singular vector
+    normal = vh[-1, :]  # smallest singular vector
     normal = normal / np.linalg.norm(normal)
     # choose u axis: vector from first to second point projected onto plane
     tmp = points[1] - points[0]
@@ -19,27 +20,39 @@ def fit_plane_svd(points):
     u = u / np.linalg.norm(u)
     v = np.cross(normal, u)
     T = np.eye(4)
-    T[0:3,0] = u
-    T[0:3,1] = v
-    T[0:3,2] = normal
-    T[0:3,3] = centroid
+    T[0:3, 0] = u
+    T[0:3, 1] = v
+    T[0:3, 2] = normal
+    T[0:3, 3] = centroid
     return T, u, v, normal, centroid
+
 
 def init_keyboard():
     events = {}
     events["record_pose"] = False
     events["stop_recording"] = False
+    events["record_home"] = False
 
     def on_press(event):
-        if event.name == "space":
-            events["record_pose"] = True
-        elif event.name == "q" or event.name == "enter":
-            events["stop_recording"] = True
+        if hasattr(event, "char") and event.char is not None:
+            print(
+                f"You pressed {event.char} on the keyboard."
+            )
+            if event.char == "q":
+                events["stop_recording"] = True
+        else:
+            if event.name == "space":
+                events["record_pose"] = True
+            elif event.name == "enter" or event.name == "escape" or event.name == "backspace" or event.name == "shift":
+                events["stop_recording"] = True
+            elif event.name == "home":
+                events["record_home"] = True
 
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
     return listener, events
+
 
 def busy_wait(seconds):
     if platform.system() == "Darwin" or platform.system() == "Windows":
@@ -52,6 +65,7 @@ def busy_wait(seconds):
         # On Linux time.sleep is accurate
         if seconds > 0:
             time.sleep(seconds)
+
 
 def compose_ee_pose(pos_w, tilt_angle_deg, plane_u, plane_v, plane_normal, gripper_pos=8.5):
     """

@@ -6,9 +6,10 @@ from lerobot.model.kinematics import RobotKinematics
 from lerobot.processor import RobotProcessorPipeline, RobotAction
 from lerobot.processor.converters import robot_action_to_transition, transition_to_robot_action
 from lerobot.robots.so100_follower.robot_kinematic_processor import ForwardKinematicsJointsToEE
+from sympy import false
 
 from drawing.connect import connect_to_robots
-from drawing.utils import fit_plane_svd, init_keyboard
+from drawing.utils import fit_plane_svd, init_keyboard, busy_wait
 
 print("=== Drawing Calibration Tool ===")
 print("Collect poses to build a drawing configuration.")
@@ -22,8 +23,31 @@ leader_id = "my_leader"
 follower_port = '/dev/tty.usbmodem5A460840631'
 follower_id = "my_follower"
 
-with connect_to_robots(leader_port, leader_id, follower_port, follower_id) as (robot, teleop):
-# robot, teleop = connect_to_robots(leader_port, leader_id, follower_port, follower_id)
+home_action = None
+poses = []
+poses_already_defined = False
+
+# load previous config if it exists
+config_path = os.path.join(os.path.dirname(__file__), "drawing_config.json")
+if os.path.exists(config_path):
+    with open(config_path, "r") as f:
+        config = json.load(f)
+        home_action = config.get("home_pose", None)
+        leader_port = config.get("robot_port", leader_port)
+        leader_id = config.get("robot_id", leader_id)
+        follower_port = config.get("teleop_port", follower_port)
+        follower_id = config.get("teleop_id", follower_id)
+        poses = config.get("poses", [])
+        poses_already_defined = True
+else:
+    config = dict()
+    config["robot_port"] = leader_port
+    config["robot_id"] = leader_id
+    config["teleop_port"] = follower_port
+    config["teleop_id"] = follower_id
+
+with connect_to_robots(config) as (robot, teleop):
+    # robot, teleop = connect_to_robots(leader_port, leader_id, follower_port, follower_id)
 
     kinematics_solver = RobotKinematics(
         urdf_path="../simulation/SO101/so101_new_calib.urdf",
@@ -42,8 +66,6 @@ with connect_to_robots(leader_port, leader_id, follower_port, follower_id) as (r
         to_output=transition_to_robot_action,
     )
 
-    poses = []
-
     _, events = init_keyboard()
 
     try:
@@ -52,6 +74,11 @@ with connect_to_robots(leader_port, leader_id, follower_port, follower_id) as (r
             robot.send_action(action)
 
             if events["record_pose"]:
+                if poses_already_defined:
+                    print("Resetting all poses")
+                    poses = []
+                    poses_already_defined = False
+
                 # Build pipeline to convert teleop joints to EE action
                 # teleop joints -> teleop EE action
                 leader_ee_act = leader_to_ee(action)
@@ -62,13 +89,21 @@ with connect_to_robots(leader_port, leader_id, follower_port, follower_id) as (r
             if events["stop_recording"]:
                 break
 
+            if events["record_home"]:
+                home_action = action
+                events["record_home"] = False
+
     except KeyboardInterrupt:
         pass
     finally:
 
-        #clean up and save
+        # clean up and save
         # robot.disconnect()
         # teleop.disconnect()
+        if home_action is not None and robot.is_connected:
+            robot.send_action(home_action)
+
+            busy_wait(2)
 
         if len(poses) > 0:
             points = np.array([[p["ee.x"], p["ee.y"], p["ee.z"]] for p in poses])
@@ -77,6 +112,7 @@ with connect_to_robots(leader_port, leader_id, follower_port, follower_id) as (r
             rms = np.sqrt(np.mean(distances ** 2))
 
             config = dict()
+            config["home_pose"] = home_action if home_action is not None else poses[0]
             config["robot_port"] = robot.config.port
             config["robot_id"] = robot.config.id
             config["robot_config_dir"] = robot.config.calibration_dir
@@ -92,8 +128,8 @@ with connect_to_robots(leader_port, leader_id, follower_port, follower_id) as (r
             config["rms"] = float(rms)
 
             config_path = os.path.join(os.path.dirname(__file__), "drawing_config.json")
-            #write config to file
+            # write config to file
             with open(config_path, "w") as f:
                 f.write(json.dumps(config, indent=2, default=str))
-        else :
+        else:
             print("No poses collected, not writing config.")
