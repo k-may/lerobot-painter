@@ -1,8 +1,9 @@
 from lerobot.robots.so101_follower import SO101FollowerConfig, SO101Follower
 from lerobot.teleoperators.so101_leader import SO101LeaderConfig, SO101Leader
 
+from drawing.utils import busy_wait
 
-def connect_to_robots(config, force_callibrate=False):
+def connect_to_robots(config : dict, force_callibrate=False):
     from contextlib import contextmanager
 
     leader_port = config["teleop_port"]
@@ -34,6 +35,10 @@ def connect_to_robots(config, force_callibrate=False):
             yield robot, teleop
         finally:
             print("Disconnecting")
+
+            if config["home"] is not None and robot.is_connected:
+                robot.send_action(config["home"])
+                busy_wait(2)
 
             try:
                 if robot.is_connected:
