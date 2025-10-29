@@ -7,9 +7,7 @@ from drawing.draw_points import draw_points
 
 
 def load_svg_points():
-    global point
-    path = os.path.dirname(__file__).join("hello.svg")
-    paths, attributes = svg2paths(path)
+    paths, attributes = svg2paths('svg/hello.svg')
     path = paths[0]
     num_samples = 200
     points = []
@@ -26,7 +24,7 @@ config_path = os.path.join(os.path.dirname(__file__), "drawing_config.json")
 with open(config_path) as f:
     config = json.load(f)
 
-poses = [[pose.ee_x, pose.ee.y, pose.ee.z] for pose in config["poses"]]
+poses = [[pose["ee.wx"], pose["ee.wy"], pose["ee.wz"]] for pose in config["poses"]]
 poses = np.array(poses)
 
 #map poses to 2D space
