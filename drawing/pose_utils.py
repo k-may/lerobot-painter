@@ -90,7 +90,7 @@ def plot_poses(T, u,v,origin, normal, poses):
     import plotly.graph_objects as go
     from scipy.spatial.transform import Rotation as R
 
-    def arrow(start, vec, color):
+    def arrow(start, vec, color, name):
         return go.Scatter3d(
             x=[start[0], start[0] + vec[0]],
             y=[start[1], start[1] + vec[1]],
@@ -98,14 +98,15 @@ def plot_poses(T, u,v,origin, normal, poses):
             mode="lines+markers",
             line=dict(color=color, width=8),
             marker=dict(size=3, color=color),
+            name=name,
         )
 
     fig = go.Figure()
 
     # Axes
-    fig.add_trace(arrow(origin, u * 0.01, "red"))
-    fig.add_trace(arrow(origin, v * 0.01, "green"))
-    fig.add_trace(arrow(origin, normal * 0.01, "black"))
+    fig.add_trace(arrow(origin, u * 0.01, "red", "u"))
+    fig.add_trace(arrow(origin, v * 0.01, "green", "v"))
+    fig.add_trace(arrow(origin, normal * 0.01, "black", "normal"))
 
     # pose positions
     for i, s in enumerate(poses):
@@ -117,10 +118,10 @@ def plot_poses(T, u,v,origin, normal, poses):
         y_axis = R_matrix[:, 1]  # End-effector Y axis
         z_axis = R_matrix[:, 2]  # End-effector Z axis
 
-        line_color = f"rgb({i * 15 % 255}, {i * 30 % 255}, 255)"
-        fig.add_trace(arrow(pos, z_axis * 0.01, 'blue'))
-        fig.add_trace(arrow(pos, x_axis * 0.01, "red"))
-        fig.add_trace(arrow(pos, y_axis * 0.01, "green"))
+
+        fig.add_trace(arrow(pos, z_axis * 0.1, 'blue'))
+        fig.add_trace(arrow(pos, x_axis * 0.1, "red"))
+        fig.add_trace(arrow(pos, y_axis * 0.1, "green"))
         # --- Define rotation of +20° (in radians) about local x-axis ---
         angle_deg = -35
         angle_rad = np.deg2rad(angle_deg)
@@ -132,17 +133,19 @@ def plot_poses(T, u,v,origin, normal, poses):
         # move along x_axis by 0.02m
         pos = pos + x_axis * 0.03
         pos = pos + z_axis * 0.07  # lift a bit
-        fig.add_trace(arrow(pos, z_axis_rotated * 0.05, line_color))
+        line_color = f"rgb({i * 15 % 255}, {i * 30 % 255}, 255)"
 
-        fig.add_trace(
-            go.Scatter3d(
-                x=[pos[0]],
-                y=[pos[1]],
-                z=[pos[2]],
-                mode="markers",
-                marker=dict(size=4, color="blue"),
-            )
-        )
+        # fig.add_trace(arrow(pos, z_axis_rotated * 0.05, line_color))
+
+        # fig.add_trace(
+        #     go.Scatter3d(
+        #         x=[pos[0]],
+        #         y=[pos[1]],
+        #         z=[pos[2]],
+        #         mode="markers",
+        #         marker=dict(size=4, color="blue"),
+        #     )
+        # )
 
     # Layout
     fig.update_layout(
