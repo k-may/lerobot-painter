@@ -26,8 +26,8 @@ circle2d = [(0.05 * np.cos(a), 0.05 * np.sin(a)) for a in angles]
 hover_h = 0.04  # 2 cm above plane
 contact_z = 0.0  # exactly on plane, or small negative for slight pressure
 
-with connect_to_robots(config["teleop_port"], config["teleop_id"],
-                       config["robot_port"], config["robot_id"]) as (robot, teleop):
+with connect_to_robots(config) as (robot, teleop):
+
 
     kinematics_solver = RobotKinematics(
         urdf_path="../simulation/SO101/so101_new_calib.urdf",
