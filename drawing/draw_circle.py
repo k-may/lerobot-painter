@@ -8,15 +8,15 @@ from lerobot.processor.converters import robot_action_observation_to_transition,
 from lerobot.robots.so100_follower.robot_kinematic_processor import EEBoundsAndSafety, InverseKinematicsEEToJoints
 
 from drawing.connect import connect_to_robots
-from drawing.utils import busy_wait, compose_ee_pose
-
+from drawing.pose_utils import euler_to_quat, average_quaternions_markley, quat_to_rotmat, rot_to_euler, \
+    build_plane_oriented_pose
+from drawing.utils import busy_wait
 FPS = 30
 
 with open('./drawing_config.json', 'r') as f:
     config = json.load(f)
 
 T, u, v, normal, origin = np.array(config["T"]), np.array(config["u"]), np.array(config["v"]), np.array(config["normal"]), np.array(config["origin"])
-
 
 # create 2D circle path in meters, center (0,0) radius 0.05
 angles = np.linspace(0, 2 * np.pi, 300)
@@ -26,8 +26,36 @@ circle2d = [(0.05 * np.cos(a), 0.05 * np.sin(a)) for a in angles]
 hover_h = 0.04  # 2 cm above plane
 contact_z = 0.0  # exactly on plane, or small negative for slight pressure
 
-with connect_to_robots(config) as (robot, teleop):
+quats = []
+positions = []
+samples = config["poses"]
+for s in samples:
+    r,p,y = s["ee.wx"], s["ee.wy"], s["ee.wz"]   # roll, pitch, yaw
+    q = euler_to_quat(r, p, y)
+    quats.append(q)
+    positions.append(np.array([s["ee.x"], s["ee.y"], s["ee.z"]]))
+quats = np.array(quats)
+positions = np.array(positions)
 
+q_mean = average_quaternions_markley(quats)
+R_mean = quat_to_rotmat(q_mean)
+
+R_stable = build_plane_oriented_pose(R_mean, normal)
+
+def compose_ee_pose(pos_w, gripper_pos=0.0):
+    roll, pitch, yaw = rot_to_euler(R_mean)
+    ave_r = [-3.138099, -0.214392, 2.962559]
+    return {
+        "ee.x": float(pos_w[0]),
+        "ee.y": float(pos_w[1]),
+        "ee.z": float(pos_w[2]),
+        "ee.wx": float(samples[0]["ee.wx"]),
+        "ee.wy": float(samples[0]["ee.wy"]),
+        "ee.wz": float(samples[0]["ee.wz"]),
+        "ee.gripper_pos": float(gripper_pos)
+    }
+
+with connect_to_robots(config) as (robot, teleop):
 
     kinematics_solver = RobotKinematics(
         urdf_path="../simulation/SO101/so101_new_calib.urdf",
@@ -63,22 +91,17 @@ with connect_to_robots(config) as (robot, teleop):
         # Get robot observation
         robot_obs = robot.get_observation()
 
-        action = compose_ee_pose(pos_w, 150, u, v, normal, gripper_pos=8.5)
+        action = compose_ee_pose(pos_w, 8.5)
 
         # combine teleop EE action with robot observation for IK
-        robot_obs = robot.get_observation()
         combined_input = (action, robot_obs)
 
         follower_joints_act = ee_to_follower_joints(combined_input)
         robot.send_action(follower_joints_act)
-
 
         busy_wait(max(1.0 / FPS - (time.perf_counter() - t0), 0.0))
 
         if i < len(circle2d) - 1:
             i += 1
         else:
-            home_pose = config["home_pose"]
-            robot.send_action(home_pose)
-            busy_wait(max(1.0 / FPS - (time.perf_counter() - t0), 0.0))
             break

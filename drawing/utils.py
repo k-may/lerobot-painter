@@ -107,7 +107,7 @@ def compose_ee_pose(pos_w, tilt_angle_deg, plane_u, plane_v, plane_normal, gripp
     R_base = np.column_stack([x_axis, y_axis, z_axis])
 
     # Step 3 — Apply tilt
-    R_final = R_tilt.as_matrix() @ R_base
+    R_final = R_base #R_tilt.as_matrix() @ R_base
 
     # Step 4 — Convert to Euler angles (XYZ convention)
     euler = R.from_matrix(R_final).as_euler('xyz', degrees=False)

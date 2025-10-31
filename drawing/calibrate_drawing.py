@@ -6,10 +6,9 @@ from lerobot.model.kinematics import RobotKinematics
 from lerobot.processor import RobotProcessorPipeline, RobotAction
 from lerobot.processor.converters import robot_action_to_transition, transition_to_robot_action
 from lerobot.robots.so100_follower.robot_kinematic_processor import ForwardKinematicsJointsToEE
-from sympy import false
 
 from drawing.connect import connect_to_robots
-from drawing.utils import fit_plane_svd, init_keyboard, busy_wait
+from drawing.utils import fit_plane_svd, init_keyboard
 
 print("=== Drawing Calibration Tool ===")
 print("Collect poses to build a drawing configuration.")
@@ -46,8 +45,7 @@ else:
     config["teleop_port"] = follower_port
     config["teleop_id"] = follower_id
 
-with connect_to_robots(config) as (robot, teleop):
-    # robot, teleop = connect_to_robots(leader_port, leader_id, follower_port, follower_id)
+with connect_to_robots(config, force_callibrate=True) as (robot, teleop):
 
     kinematics_solver = RobotKinematics(
         urdf_path="../simulation/SO101/so101_new_calib.urdf",
@@ -96,14 +94,6 @@ with connect_to_robots(config) as (robot, teleop):
     except KeyboardInterrupt:
         pass
     finally:
-
-        # clean up and save
-        # robot.disconnect()
-        # teleop.disconnect()
-        if home_action is not None and robot.is_connected:
-            robot.send_action(home_action)
-
-            busy_wait(2)
 
         if len(poses) > 0:
             points = np.array([[p["ee.x"], p["ee.y"], p["ee.z"]] for p in poses])
