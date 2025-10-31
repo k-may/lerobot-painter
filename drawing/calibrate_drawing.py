@@ -8,6 +8,7 @@ from lerobot.processor.converters import robot_action_to_transition, transition_
 from lerobot.robots.so100_follower.robot_kinematic_processor import ForwardKinematicsJointsToEE
 
 from drawing.connect import connect_to_robots
+from drawing.pose_utils import plot_poses
 from drawing.utils import fit_plane_svd, init_keyboard
 
 print("=== Drawing Calibration Tool ===")

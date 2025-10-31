@@ -117,10 +117,10 @@ def plot_poses(T, u,v,origin, normal, poses):
         y_axis = R_matrix[:, 1]  # End-effector Y axis
         z_axis = R_matrix[:, 2]  # End-effector Z axis
 
-        line_color = f"rgb({i * 15 % 255}, {i * 30 % 255}, {i * 45 % 255})"
-        fig.add_trace(arrow(pos, z_axis * 0.01, line_color))
-        fig.add_trace(arrow(pos, x_axis * 0.01, "yellow"))
-        fig.add_trace(arrow(pos, y_axis * 0.01, "purple"))
+        line_color = f"rgb({i * 15 % 255}, {i * 30 % 255}, 255)"
+        fig.add_trace(arrow(pos, z_axis * 0.01, 'blue'))
+        fig.add_trace(arrow(pos, x_axis * 0.01, "red"))
+        fig.add_trace(arrow(pos, y_axis * 0.01, "green"))
         # --- Define rotation of +20° (in radians) about local x-axis ---
         angle_deg = -35
         angle_rad = np.deg2rad(angle_deg)
@@ -130,9 +130,9 @@ def plot_poses(T, u,v,origin, normal, poses):
         z_axis_rotated = R_local.apply(z_axis)
 
         # move along x_axis by 0.02m
-        pos = pos + x_axis * 0.02
-        pos = pos + z_axis * 0.05  # lift a bit
-        fig.add_trace(arrow(pos, z_axis_rotated * 0.05, "cyan"))
+        pos = pos + x_axis * 0.03
+        pos = pos + z_axis * 0.07  # lift a bit
+        fig.add_trace(arrow(pos, z_axis_rotated * 0.05, line_color))
 
         fig.add_trace(
             go.Scatter3d(
