@@ -85,3 +85,71 @@ def build_plane_oriented_pose(R_ref, n, flip_tool_toward_surface=True):
     x_proj /= np.linalg.norm(x_proj)
     y_axis = np.cross(z_axis, x_proj)
     return np.column_stack([x_proj, y_axis, z_axis])
+
+def plot_poses(T, u,v,origin, normal, poses):
+    import plotly.graph_objects as go
+    from scipy.spatial.transform import Rotation as R
+
+    def arrow(start, vec, color):
+        return go.Scatter3d(
+            x=[start[0], start[0] + vec[0]],
+            y=[start[1], start[1] + vec[1]],
+            z=[start[2], start[2] + vec[2]],
+            mode="lines+markers",
+            line=dict(color=color, width=8),
+            marker=dict(size=3, color=color),
+        )
+
+    fig = go.Figure()
+
+    # Axes
+    fig.add_trace(arrow(origin, u * 0.01, "red"))
+    fig.add_trace(arrow(origin, v * 0.01, "green"))
+    fig.add_trace(arrow(origin, normal * 0.01, "black"))
+
+    # pose positions
+    for i, s in enumerate(poses):
+        pos = np.array([s["ee.x"], s["ee.y"], s["ee.z"]])
+        rot = np.array([s["ee.wx"], s["ee.wy"], s["ee.wz"]])
+        rot = R.from_euler('xyz', rot)
+        R_matrix = rot.as_matrix()
+        x_axis = R_matrix[:, 0]  # End-effector X axis in base frame
+        y_axis = R_matrix[:, 1]  # End-effector Y axis
+        z_axis = R_matrix[:, 2]  # End-effector Z axis
+
+        line_color = f"rgb({i * 15 % 255}, {i * 30 % 255}, {i * 45 % 255})"
+        fig.add_trace(arrow(pos, z_axis * 0.01, line_color))
+        fig.add_trace(arrow(pos, x_axis * 0.01, "yellow"))
+        fig.add_trace(arrow(pos, y_axis * 0.01, "purple"))
+        # --- Define rotation of +20° (in radians) about local x-axis ---
+        angle_deg = -35
+        angle_rad = np.deg2rad(angle_deg)
+        R_local = R.from_rotvec(y_axis * angle_rad)  # rotate around local x-axis
+
+        # --- Apply this local rotation to z-axis ---
+        z_axis_rotated = R_local.apply(z_axis)
+
+        # move along x_axis by 0.02m
+        pos = pos + x_axis * 0.02
+        pos = pos + z_axis * 0.05  # lift a bit
+        fig.add_trace(arrow(pos, z_axis_rotated * 0.05, "cyan"))
+
+        fig.add_trace(
+            go.Scatter3d(
+                x=[pos[0]],
+                y=[pos[1]],
+                z=[pos[2]],
+                mode="markers",
+                marker=dict(size=4, color="blue"),
+            )
+        )
+
+    # Layout
+    fig.update_layout(
+        scene=dict(
+            xaxis_title="X", yaxis_title="Y", zaxis_title="Z",
+            aspectmode="cube"
+        ),
+        title="Interactive TCP Visualization",
+    )
+    fig.show()

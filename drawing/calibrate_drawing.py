@@ -121,5 +121,7 @@ with connect_to_robots(config, force_callibrate=True) as (robot, teleop):
             # write config to file
             with open(config_path, "w") as f:
                 f.write(json.dumps(config, indent=2, default=str))
+
+            plot_poses(T, u, v, origin, normal, poses)
         else:
             print("No poses collected, not writing config.")

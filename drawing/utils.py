@@ -121,3 +121,4 @@ def compose_ee_pose(pos_w, tilt_angle_deg, plane_u, plane_v, plane_normal, gripp
         "ee.wz": float(euler[2]),
         "ee.gripper_pos": float(gripper_pos)
     }
+
