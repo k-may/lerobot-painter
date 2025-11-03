@@ -86,17 +86,18 @@ def build_plane_oriented_pose(R_ref, n, flip_tool_toward_surface=True):
     y_axis = np.cross(z_axis, x_proj)
     return np.column_stack([x_proj, y_axis, z_axis])
 
+
 def plot_poses(T, u,v,origin, normal, poses):
     import plotly.graph_objects as go
     from scipy.spatial.transform import Rotation as R
 
-    def arrow(start, vec, color, name="arrow"):
+    def arrow(start, vec, color, name=""):
         return go.Scatter3d(
             x=[start[0], start[0] + vec[0]],
             y=[start[1], start[1] + vec[1]],
             z=[start[2], start[2] + vec[2]],
             mode="lines+markers",
-            line=dict(color=color, width=2),
+            line=dict(color=color, width=4),
             marker=dict(size=3, color=color),
             name=name
         )
@@ -104,9 +105,9 @@ def plot_poses(T, u,v,origin, normal, poses):
     fig = go.Figure()
 
     # Axes
-    fig.add_trace(arrow(origin, u * 0.01, "red"))
-    fig.add_trace(arrow(origin, v * 0.01, "green"))
-    fig.add_trace(arrow(origin, normal * 0.01, "black"))
+    fig.add_trace(arrow(origin, u * 0.01, "red", "u"))
+    fig.add_trace(arrow(origin, v * 0.01, "green", "v"))
+    fig.add_trace(arrow(origin, normal * 0.01, "black", "normal"))
 
     # pose positions
     for i, s in enumerate(poses):
@@ -119,9 +120,9 @@ def plot_poses(T, u,v,origin, normal, poses):
         z_axis = R_matrix[:, 2]  # End-effector Z axis
 
         line_color = f"rgb({i * 15 % 255}, {i * 30 % 255}, 255)"
-        fig.add_trace(arrow(pos, z_axis * 0.01, 'blue', "z-axis"))
-        # fig.add_trace(arrow(pos, x_axis * 0.01, "red"))
-        # fig.add_trace(arrow(pos, y_axis * 0.01, "green"))
+        fig.add_trace(arrow(pos, z_axis * 0.1, 'blue', "z"))
+        fig.add_trace(arrow(pos, x_axis * 0.1, "red", "x"))
+        fig.add_trace(arrow(pos, y_axis * 0.1, "green", "yaxis"))
         # --- Define rotation of +20° (in radians) about local x-axis ---
         angle_deg = -35
         angle_rad = np.deg2rad(angle_deg)
@@ -133,20 +134,20 @@ def plot_poses(T, u,v,origin, normal, poses):
         # move along x_axis by 0.02m
         pos = pos + x_axis * 0.03
         pos = pos + z_axis * 0.07  # lift a bit
-        fig.add_trace(arrow(pos, z_axis_rotated * 0.05, line_color))
-
-        fig.add_trace(
-            go.Scatter3d(
-                x=[pos[0]],
-                y=[pos[1]],
-                z=[pos[2]],
-                mode="markers",
-                marker=dict(size=4, color="blue"),
-            )
-        )
+        # fig.add_trace(arrow(pos, z_axis_rotated * 0.05, line_color, "z-axis rotated"))
+        #
+        # fig.add_trace(
+        #     go.Scatter3d(
+        #         x=[pos[0]],
+        #         y=[pos[1]],
+        #         z=[pos[2]],
+        #         mode="markers",
+        #         marker=dict(size=4, color="blue"),
+        #     )
+        # )
 
     # Layout
-    r = 0.12
+    r = 1
     fig.update_layout(
         scene=dict(
             xaxis=dict(range=[origin[0] - r, origin[0] + r], title='X'),
