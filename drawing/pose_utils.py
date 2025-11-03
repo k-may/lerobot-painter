@@ -112,39 +112,25 @@ def plot_poses(T, u,v,origin, normal, poses):
     # pose positions
     for i, s in enumerate(poses):
         pos = np.array([s["ee.x"], s["ee.y"], s["ee.z"]])
-        rot = np.array([s["ee.wx"], s["ee.wy"], s["ee.wz"]])
-        rot = R.from_euler('xyz', rot)
-        R_matrix = rot.as_matrix()
-        x_axis = R_matrix[:, 0]  # End-effector X axis in base frame
-        y_axis = R_matrix[:, 1]  # End-effector Y axis
-        z_axis = R_matrix[:, 2]  # End-effector Z axis
+        rotvec = np.array([s["ee.wx"], s["ee.wy"], s["ee.wz"]])
 
-        line_color = f"rgb({i * 15 % 255}, {i * 30 % 255}, 255)"
-        fig.add_trace(arrow(pos, z_axis * 0.1, 'blue', "z"))
-        fig.add_trace(arrow(pos, x_axis * 0.1, "red", "x"))
-        fig.add_trace(arrow(pos, y_axis * 0.1, "green", "yaxis"))
-        # --- Define rotation of +20° (in radians) about local x-axis ---
-        angle_deg = -35
-        angle_rad = np.deg2rad(angle_deg)
-        R_local = R.from_rotvec(y_axis * angle_rad)  # rotate around local x-axis
+        # --- Convert to rotation matrix ---
+        rot = R.from_rotvec(rotvec)
+        R_mat = rot.as_matrix()
 
-        # --- Apply this local rotation to z-axis ---
-        z_axis_rotated = R_local.apply(z_axis)
+        # --- Original coordinate axes ---
+        x_axis = np.array([1, 0, 0])
+        y_axis = np.array([0, 1, 0])
+        z_axis = np.array([0, 0, 1])
 
-        # move along x_axis by 0.02m
-        pos = pos + x_axis * 0.03
-        pos = pos + z_axis * 0.07  # lift a bit
-        # fig.add_trace(arrow(pos, z_axis_rotated * 0.05, line_color, "z-axis rotated"))
-        #
-        # fig.add_trace(
-        #     go.Scatter3d(
-        #         x=[pos[0]],
-        #         y=[pos[1]],
-        #         z=[pos[2]],
-        #         mode="markers",
-        #         marker=dict(size=4, color="blue"),
-        #     )
-        # )
+        # --- Rotated axes ---
+        x_rot = R_mat @ x_axis
+        y_rot = R_mat @ y_axis
+        z_rot = R_mat @ z_axis
+
+        fig.add_trace(arrow(pos, x_rot * 0.01, 'red'))
+        fig.add_trace(arrow(pos, y_rot * 0.01, 'green'))
+        fig.add_trace(arrow(pos, z_rot * 0.01, 'black'))
 
     # Layout
     r = 1

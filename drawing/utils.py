@@ -67,7 +67,7 @@ def busy_wait(seconds):
             time.sleep(seconds)
 
 
-def compose_ee_pose(pos_w, tilt_angle_deg, plane_u, plane_v, plane_normal, gripper_pos=8.5):
+def compose_ee_pose(pos_w, plane_u, plane_v, plane_normal, gripper_pos=8.5):
     """
     Compose a robot EE pose from a position on the drawing plane and a tilt angle.
 
@@ -92,25 +92,19 @@ def compose_ee_pose(pos_w, tilt_angle_deg, plane_u, plane_v, plane_normal, gripp
     v = plane_v / np.linalg.norm(plane_v)
     n = plane_normal / np.linalg.norm(plane_normal)
 
-    # Step 1 — Apply tilt around plane_u
-    tilt_axis = u  # could choose v or any axis in plane
-    tilt_rad = np.radians(tilt_angle_deg)
-    R_tilt = R.from_rotvec(tilt_rad * tilt_axis)
-
     # Step 2 — Build base orientation (pencil along -normal)
     z_axis = -n
     x_axis = u
-    y_axis = np.cross(z_axis, x_axis)
-    y_axis /= np.linalg.norm(y_axis)
-    x_axis = np.cross(y_axis, z_axis)
-    x_axis /= np.linalg.norm(x_axis)
+    y_axis = v #np.cross(z_axis, x_axis)
+    # y_axis /= np.linalg.norm(y_axis)
+    # x_axis = np.cross(y_axis, z_axis)
+    # x_axis /= np.linalg.norm(x_axis)
     R_base = np.column_stack([x_axis, y_axis, z_axis])
 
     # Step 3 — Apply tilt
     R_final = R_base #R_tilt.as_matrix() @ R_base
 
     # # Step 4 — Convert to Euler angles (XYZ convention)
-    # euler = R.from_matrix(R_final).as_euler('xyz', degrees=False)
     rot_vec = R.from_matrix(R_final).as_rotvec()
 
     return {
