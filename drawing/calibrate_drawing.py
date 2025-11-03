@@ -53,6 +53,8 @@ with connect_to_robots(config, force_callibrate=True) as (robot, teleop):
         target_frame_name="gripper_frame_link",
         joint_names=list(robot.bus.motors.keys()),
     )
+    kinematics_solver.tip_frame.configure("effector", "hard", 1.0, 1.0)
+    kinematics_solver.solver.mask_dof("head_yaw")
 
     # Build pipeline to convert teleop joints to EE action
     leader_to_ee = RobotProcessorPipeline[RobotAction, RobotAction](

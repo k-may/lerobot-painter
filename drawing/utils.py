@@ -109,16 +109,17 @@ def compose_ee_pose(pos_w, tilt_angle_deg, plane_u, plane_v, plane_normal, gripp
     # Step 3 — Apply tilt
     R_final = R_base #R_tilt.as_matrix() @ R_base
 
-    # Step 4 — Convert to Euler angles (XYZ convention)
-    euler = R.from_matrix(R_final).as_euler('xyz', degrees=False)
+    # # Step 4 — Convert to Euler angles (XYZ convention)
+    # euler = R.from_matrix(R_final).as_euler('xyz', degrees=False)
+    rot_vec = R.from_matrix(R_final).as_rotvec()
 
     return {
         "ee.x": float(pos_w[0]),
         "ee.y": float(pos_w[1]),
         "ee.z": float(pos_w[2]),
-        "ee.wx": float(euler[0]),
-        "ee.wy": float(euler[1]),
-        "ee.wz": float(euler[2]),
+        "ee.wx": float(rot_vec[0]),
+        "ee.wy": float(rot_vec[1]),
+        "ee.wz": float(rot_vec[2]),
         "ee.gripper_pos": float(gripper_pos)
     }
 
