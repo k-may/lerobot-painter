@@ -117,3 +117,34 @@ def compose_ee_pose(pos_w, plane_u, plane_v, plane_normal, gripper_pos=8.5):
         "ee.gripper_pos": float(gripper_pos)
     }
 
+
+def align_plane_frame_z(rv_sample, R_plane):
+    """
+    Align plane frame R_plane to reference sample rotation rv_sample.
+    Assumes z-axis is already aligned.
+    Rotates R_plane around z to match sample x-axis as closely as possible.
+    """
+    R_samp = R.from_rotvec(rv_sample).as_matrix()
+
+    # Current z-axis of plane frame (should already match sample z)
+    z_plane = R_plane[:, 2]
+    x_samp = R_samp[:, 0]  # sample x-axis
+    # Project sample x onto plane perpendicular to z
+    x_samp_proj = x_samp - np.dot(x_samp, z_plane) * z_plane
+    x_samp_proj /= np.linalg.norm(x_samp_proj)
+
+    # Current x-axis of plane frame projected onto same plane
+    x_plane_proj = R_plane[:, 0] - np.dot(R_plane[:, 0], z_plane) * z_plane
+    x_plane_proj /= np.linalg.norm(x_plane_proj)
+
+    # Rotation around z to align projected x axes
+    cos_theta = np.clip(np.dot(x_plane_proj, x_samp_proj), -1.0, 1.0)
+    theta = np.arccos(cos_theta)
+    # Determine sign using cross product
+    if np.dot(np.cross(x_plane_proj, x_samp_proj), z_plane) < 0:
+        theta = -theta
+
+    # Apply rotation around z
+    R_rot = R.from_rotvec(theta * z_plane)
+    R_aligned = R_rot.as_matrix() @ R_plane
+    return R_aligned
