@@ -88,7 +88,7 @@ def draw_points(points : np.array):
 
             busy_wait(max(1.0 / FPS - (time.perf_counter() - t0), 0.0))
 
-            if i < len(points) - 1:
+            if i < len(positions) - 1:
                 i += 1
             else:
                 break
