@@ -8,21 +8,33 @@ from lerobot.processor.converters import robot_action_observation_to_transition,
 from lerobot.robots.so100_follower.robot_kinematic_processor import EEBoundsAndSafety, InverseKinematicsEEToJoints
 
 from drawing.connect import connect_to_robots
+from drawing.pose_utils import fit_drawing_rotation
 from drawing.utils import compose_ee_pose, busy_wait
 
+FPS = 30
 
 def draw_points(points : np.array):
-    FPS = 30
 
     with open('./drawing_config.json', 'r') as f:
         config = json.load(f)
 
     T, u, v, normal, origin = np.array(config["T"]), np.array(config["u"]), np.array(config["v"]), np.array(
         config["normal"]), np.array(config["origin"])
+    rot_vec = fit_drawing_rotation(config["poses"])
 
-    # convert to world poses and execute
     hover_h = 0.04  # 2 cm above plane
-    contact_z = 0.0  # exactly on plane, or small negative for slight pressure
+
+    # compute world positions including hover start and end
+    positions = []
+    pos_start = origin + points[0][0] * u + points[0][1] * v - normal * hover_h
+    positions.append(pos_start)
+
+    for point in points:
+        pos_w = origin + point[0] * u + point[1] * v
+        positions.append(pos_w)
+
+    pos_end = origin + points[-1][0] * u + points[-1][1] * v - normal * hover_h
+    positions.append(pos_end)
 
     with connect_to_robots(config) as (robot, teleop):
 
@@ -54,14 +66,20 @@ def draw_points(points : np.array):
 
             t0 = time.perf_counter()
 
-            s, t = points[i]
-            pos_w = origin + s * u + t * v + hover_h * -normal
+            pos_w = positions[i]
+
+            action = {
+                "ee.x": float(pos_w[0]),
+                "ee.y": float(pos_w[1]),
+                "ee.z": float(pos_w[2]),
+                "ee.wx": rot_vec[0],
+                "ee.wy": rot_vec[1],
+                "ee.wz": rot_vec[2],
+                "ee.gripper_pos": 8.5
+            }
 
             # Get robot observation
             robot_obs = robot.get_observation()
-
-            action = compose_ee_pose(pos_w, 150, u, v, normal, gripper_pos=8.5)
-
             # combine teleop EE action with robot observation for IK
             combined_input = (action, robot_obs)
 

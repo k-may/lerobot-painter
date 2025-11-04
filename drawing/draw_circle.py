@@ -9,10 +9,7 @@ from lerobot.robots.so100_follower.robot_kinematic_processor import EEBoundsAndS
 
 from drawing.connect import connect_to_robots
 from drawing.pose_utils import fit_drawing_rotation
-from drawing.utils import busy_wait, compose_ee_pose, align_plane_frame_z
-from scipy.spatial.transform import Rotation as R
-
-from notebooks.drawing_02_pose_rot_mat import x_axis
+from drawing.utils import busy_wait
 
 FPS = 30
 
@@ -20,10 +17,7 @@ with open('./drawing_config.json', 'r') as f:
     config = json.load(f)
 
 T, u, v, normal, origin = np.array(config["T"]), np.array(config["u"]), np.array(config["v"]), np.array(config["normal"]), np.array(config["origin"])
-
 rot_vec = fit_drawing_rotation(config["poses"])
-
-
 
 # create 2D circle path in meters, center (0,0) radius 0.05
 angles = np.linspace(0, 2 * np.pi, 300)
@@ -32,7 +26,6 @@ circle2d = [(0.05 * np.cos(a), 0.05 * np.sin(a)) for a in angles]
 # convert to world poses and execute
 hover_h = 0.01  # 2 cm above plane
 contact_z = 0.0  # exactly on plane, or small negative for slight pressure
-
 
 with connect_to_robots(config) as (robot, teleop):
 
@@ -79,7 +72,6 @@ with connect_to_robots(config) as (robot, teleop):
             "ee.wz": rot_vec[2], #0.141891978245403,
             "ee.gripper_pos": 8.5
         }
-        # action = compose_ee_pose(pos_w,  u, v, normal)
 
         # combine teleop EE action with robot observation for IK
         combined_input = (action, robot_obs)
