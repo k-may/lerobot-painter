@@ -1,6 +1,7 @@
 from lerobot.robots.so101_follower import SO101FollowerConfig, SO101Follower
 from lerobot.teleoperators.so101_leader import SO101LeaderConfig, SO101Leader
 
+from drawing.robot_sim.RobotWebSocket import RobotWebSocket
 from drawing.utils import busy_wait
 
 def connect_to_robots(config : dict, force_callibrate=False):
@@ -19,8 +20,12 @@ def connect_to_robots(config : dict, force_callibrate=False):
         port=leader_port,
         id=leader_id
     )
-    robot = SO101Follower(robot_config)
-    teleop = SO101Leader(teleop_config)
+    try :
+        robot = SO101Follower(robot_config)
+        teleop = SO101Leader(teleop_config)
+    except Exception as e:
+        robot = RobotWebSocket(ip='localhost', port='8765')
+        teleop = None
 
     @contextmanager
     def _cm():
