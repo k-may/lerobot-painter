@@ -23,12 +23,6 @@ def connect_to_robots(config : dict, force_callibrate=False):
     try :
         robot = SO101Follower(robot_config)
         teleop = SO101Leader(teleop_config)
-    except Exception as e:
-        robot = RobotWebSocket(ip='localhost', port='8765')
-        teleop = None
-
-    @contextmanager
-    def _cm():
         robot.connect()
         if robot.calibration is None or force_callibrate:
             robot.calibrate()
@@ -36,6 +30,18 @@ def connect_to_robots(config : dict, force_callibrate=False):
         teleop.connect()
         if teleop.calibration is None or force_callibrate:
             teleop.calibrate()
+    except ConnectionError as e:
+
+        pose = config["home_pose"]
+        motors = {motor.replace(".pos", ""): pose[motor] for motor in pose.keys()}
+        robot = RobotWebSocket(ip='172.18.224.1', port='8765', motors=motors)
+        robot.connect()
+
+        teleop = None
+
+    @contextmanager
+    def _cm():
+
         try:
             yield robot, teleop
         finally:

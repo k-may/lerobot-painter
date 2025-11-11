@@ -11,6 +11,7 @@ import {
 } from 'three';
 import URDFLoader from 'urdf-loader';
 import {OrbitControls} from "three/addons";
+import {degToRad} from "three/src/math/MathUtils.js";
 
 let scene, camera, renderer, robot, controls;
 
@@ -95,4 +96,24 @@ ws.onopen = () => console.log("Connected to WS server");
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     console.log("Joint angles:", data);
+
+    var is_updated = false;
+    for(var joint in data){
+
+        var angle = degToRad(data[joint]);
+        joint = joint.replace(".pos", "")
+        if(robot.joints[joint]) {
+            is_updated = true
+            robot.joints[joint].setJointValue(angle);
+        }
+    }
+    robot.updateMatrixWorld(true);
+
 };
+
+window.set_joint = (joint, angle) => {
+    if(robot.joints[joint]){
+        robot.joints[joint].setJointValue(angle);
+        // robot.updateMatrixWorld(true);
+    }
+}

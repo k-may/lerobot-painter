@@ -1,19 +1,20 @@
 import json
+import os.path
 import time
 
 import numpy as np
-from lerobot.model.kinematics import RobotKinematics
-from lerobot.processor import RobotProcessorPipeline, RobotAction, RobotObservation
-from lerobot.processor.converters import robot_action_observation_to_transition, transition_to_robot_action
-from lerobot.robots.so100_follower.robot_kinematic_processor import EEBoundsAndSafety, InverseKinematicsEEToJoints
 
 from drawing.connect import connect_to_robots
 from drawing.pose_utils import fit_drawing_rotation
 from drawing.utils import busy_wait
 
 FPS = 30
+# Get the directory where the current script lives
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
-with open('./drawing_config.json', 'r') as f:
+# Build the full path to the JSON file
+config_path = os.path.join(script_dir, 'drawing_config.json')
+with open(config_path, 'r') as f:
     config = json.load(f)
 
 T, u, v, normal, origin = np.array(config["T"]), np.array(config["u"]), np.array(config["v"]), np.array(config["normal"]), np.array(config["origin"])
@@ -28,6 +29,11 @@ hover_h = 0.01  # 2 cm above plane
 contact_z = 0.0  # exactly on plane, or small negative for slight pressure
 
 with connect_to_robots(config) as (robot, teleop):
+
+    from lerobot.model.kinematics import RobotKinematics
+    from lerobot.processor import RobotProcessorPipeline, RobotAction, RobotObservation
+    from lerobot.processor.converters import robot_action_observation_to_transition, transition_to_robot_action
+    from lerobot.robots.so100_follower.robot_kinematic_processor import EEBoundsAndSafety, InverseKinematicsEEToJoints
 
     kinematics_solver = RobotKinematics(
         urdf_path="../simulation/SO101/so101_new_calib.urdf",
