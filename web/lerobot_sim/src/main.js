@@ -1,17 +1,18 @@
 import './style.css'
 import {
-    AmbientLight, Box3,
+    AmbientLight,
     Color,
     DirectionalLight,
-    LoadingManager,
-    Mesh, PCFSoftShadowMap,
-    PerspectiveCamera, PlaneGeometry,
-    Scene, ShadowMaterial,
+    Mesh,
+    PCFSoftShadowMap,
+    PerspectiveCamera,
+    PlaneGeometry,
+    Scene,
+    ShadowMaterial,
     WebGLRenderer
 } from 'three';
-import URDFLoader from 'urdf-loader';
 import {OrbitControls} from "three/addons";
-import {degToRad} from "three/src/math/MathUtils.js";
+import {RobotRenderer} from "./RobotRenderer.js";
 
 let scene, camera, renderer, robot, controls;
 
@@ -19,10 +20,10 @@ scene = new Scene();
 scene.background = new Color(0x263238);
 
 camera = new PerspectiveCamera();
-camera.position.set(0.3,0.3, 0.3);
+camera.position.set(0.3, 0.3, 0.3);
 camera.lookAt(0, 0, 0);
 
-renderer = new WebGLRenderer({ antialias: true });
+renderer = new WebGLRenderer({antialias: true});
 // renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = PCFSoftShadowMap;
@@ -37,39 +38,22 @@ scene.add(directionalLight);
 const ambientLight = new AmbientLight(0xffffff, 0.2);
 scene.add(ambientLight);
 
-const ground = new Mesh(new PlaneGeometry(), new ShadowMaterial({ opacity: 0.25 }));
+const ground = new Mesh(new PlaneGeometry(), new ShadowMaterial({opacity: 0.25}));
 ground.rotation.x = -Math.PI / 2;
 ground.scale.setScalar(30);
 ground.receiveShadow = true;
 scene.add(ground);
 
 controls = new OrbitControls(camera, renderer.domElement);
-controls.minDistance = 1;
-controls.target.y = 0.2;
+controls.minDistance = 0.1;
+controls.target.y = 0.1;
+controls.target.x = 0.3;
 controls.update();
 
-const manager = new LoadingManager();
-const loader = new URDFLoader( manager );
-loader.load( 'SO101/so101_new_calib.urdf', function ( model ) {
-    scene.add( model );
-    robot = model;
-} );
-manager.onLoad = () => {
+robot = new RobotRenderer('SO101/so101_new_calib.urdf', function (model) {
+    scene.add(model);
+});
 
-    robot.rotation.x = -Math.PI / 2;
-    robot.traverse(c => {
-        c.castShadow = true;
-    });
-
-    robot.updateMatrixWorld(true);
-
-    const bb = new Box3();
-    bb.setFromObject(robot);
-    console.log(bb, robot.position);
-    // robot.position.y -= bb.min.y;
-    scene.add(robot);
-
-};
 function onResize() {
 
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -95,25 +79,5 @@ const ws = new WebSocket("ws://localhost:8765");
 ws.onopen = () => console.log("Connected to WS server");
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    console.log("Joint angles:", data);
-
-    var is_updated = false;
-    for(var joint in data){
-
-        var angle = degToRad(data[joint]);
-        joint = joint.replace(".pos", "")
-        if(robot.joints[joint]) {
-            is_updated = true
-            robot.joints[joint].setJointValue(angle);
-        }
-    }
-    robot.updateMatrixWorld(true);
-
+    robot.setAction(data);
 };
-
-window.set_joint = (joint, angle) => {
-    if(robot.joints[joint]){
-        robot.joints[joint].setJointValue(angle);
-        // robot.updateMatrixWorld(true);
-    }
-}

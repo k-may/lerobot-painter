@@ -84,7 +84,7 @@ def draw_points(points : np.array):
             combined_input = (action, robot_obs)
 
             follower_joints_act = ee_to_follower_joints(combined_input)
-            robot.send_action(follower_joints_act)
+            robot.send_action(follower_joints_act, action)
 
             busy_wait(max(1.0 / FPS - (time.perf_counter() - t0), 0.0))
 

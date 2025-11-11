@@ -57,10 +57,10 @@ class RobotWebSocket(Robot):
     def disconnect(self) -> None:
         self.ws.close()
 
-    def send_action(self, action: dict[str, Any]) -> dict[str, Any]:
+    def send_action(self, action: dict[str, Any], *args, **kwargs) -> dict[str, Any]:
         try:
-            # print("Sending action:", action)
-            self.ws.send(json.dumps(action))
+            data = {"action" : action, "ee" : args[0]}
+            self.ws.send(json.dumps( data))
             self.bus.set_joints(action)
         except Exception as e:
             self.bus.set_joints(action)

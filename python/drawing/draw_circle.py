@@ -69,7 +69,7 @@ with connect_to_robots(config) as (robot, teleop):
         # Get robot observation
         robot_obs = robot.get_observation()
 
-        action = {
+        ee = {
             "ee.x": float(pos_w[0]),
             "ee.y": float(pos_w[1]),
             "ee.z": float(pos_w[2]),
@@ -80,10 +80,10 @@ with connect_to_robots(config) as (robot, teleop):
         }
 
         # combine teleop EE action with robot observation for IK
-        combined_input = (action, robot_obs)
+        combined_input = (ee, robot_obs)
 
         follower_joints_act = ee_to_follower_joints(combined_input)
-        robot.send_action(follower_joints_act)
+        robot.send_action(follower_joints_act, ee)
         busy_wait(max(1.0 / FPS - (time.perf_counter() - t0), 0.0))
 
         if i < len(circle2d) - 1:
